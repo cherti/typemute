@@ -13,7 +13,7 @@ import (
 	"github.com/sqp/pulseaudio"
 )
 
-var timeoutSeconds = flag.Int("t", 1, "mute timeout after last keypress")
+var timeoutSeconds = flag.Float64("t", 1.0, "mute timeout after last keypress in seconds")
 var initialMicState []*pulseaudio.Object = getUnmutedMics()
 
 func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan bool) {
