@@ -18,6 +18,7 @@ var verbose = flag.Bool("v", false, "give more detailed output")
 var initialMicState []*pulseaudio.Object = getUnmutedMics()
 
 func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan bool) {
+	fmt.Println("Monitoring keyboard. Press Ctrl+C to exit.")
 	for scanner.Scan() {
 		slc := strings.Split(scanner.Text(), " ")
 		if slc[len(slc)-1] == "pressed" {
@@ -115,9 +116,13 @@ func main() {
 
 	for {
 		<-keypressDump
-		fmt.Println("muting")
+		if *verbose {
+			fmt.Println("muting")
+		}
 		mics := mute(keypressDump)
-		fmt.Println("unmuting")
+		if *verbose {
+			fmt.Println("unmuting")
+		}
 		unmute(mics)
 	}
 }
