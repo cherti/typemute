@@ -26,6 +26,7 @@ Install the packages `libinput-tools`, `expect` (for `unbuffer`) and `sudo`, the
 
 Install external dependencies:
 
+  * `pactl`
   * `libinput` (the tool, not just the library)
   * `unbuffer` (likely from the `expect` package)
   * `sudo`
@@ -36,7 +37,8 @@ Then either
 
 or clone and
 
-    go build typemute.go
+    go get -u github.com/sqp/pulseaudio  # get the dependency
+    go build typemute.go  # and build locally
 
 
 ## FAQ
