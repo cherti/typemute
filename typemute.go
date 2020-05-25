@@ -14,6 +14,7 @@ import (
 )
 
 var timeoutSeconds = flag.Float64("t", 1.0, "mute timeout after last keypress in seconds")
+var verbose = flag.Bool("v", false, "give more detailed output")
 var initialMicState []*pulseaudio.Object = getUnmutedMics()
 
 func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan bool) {
@@ -86,6 +87,8 @@ func unmute(devices2unmute []*pulseaudio.Object) {
 }
 
 func main() {
+
+	flag.Parse()
 
 	// restore unmuted mic state on SIGTERM
 	c := make(chan os.Signal, 1)
