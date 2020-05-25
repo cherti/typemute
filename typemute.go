@@ -19,9 +19,7 @@ var initialMicState []*pulseaudio.Object = getUnmutedMics()
 
 func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan bool) {
 	for scanner.Scan() {
-		txt := scanner.Text()
-		//fmt.Println(txt)
-		slc := strings.Split(txt, " ")
+		slc := strings.Split(scanner.Text(), " ")
 		if slc[len(slc)-1] == "pressed" {
 			keypressDump <- true
 		}
