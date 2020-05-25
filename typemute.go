@@ -17,7 +17,7 @@ var timeoutSeconds = flag.Float64("t", 1.0, "mute timeout after last keypress in
 var verbose = flag.Bool("v", false, "give more detailed output")
 var initialMicState []*pulseaudio.Object = getUnmutedMics()
 
-func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan bool) {
+func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan<- bool) {
 	fmt.Println("Monitoring keyboard. Press Ctrl+C to exit.")
 	for scanner.Scan() {
 		slc := strings.Split(scanner.Text(), " ")
@@ -57,7 +57,7 @@ func getUnmutedMics() []*pulseaudio.Object {
 	return mics
 }
 
-func mute(keypressDump chan bool) []*pulseaudio.Object {
+func mute(keypressDump <-chan bool) []*pulseaudio.Object {
 	devices2mute := getUnmutedMics()
 
 	// actually mute devices
