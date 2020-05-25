@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -15,7 +16,8 @@ import (
 
 var timeoutSeconds = flag.Float64("t", 1.0, "mute timeout after last keypress in seconds")
 var verbose = flag.Bool("v", false, "give more detailed output")
-var initialMicState []*pulseaudio.Object = getUnmutedMics()
+var pulse *pulseaudio.Client
+var initialMicState []*pulseaudio.Object
 
 func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan<- bool) {
 	fmt.Println("Monitoring keyboard. Press Ctrl+C to exit.")
@@ -31,14 +33,11 @@ func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan<- bool) {
 }
 
 func getUnmutedMics() []*pulseaudio.Object {
-	// get a connection to pulseaudio
-	pulse, err := pulseaudio.New()
-	if err != nil {
-		fmt.Println(err)
-	}
-
 	// obtain all microphones
 	sources, err := pulse.Core().ListPath("Sources")
+	if err != nil {
+		return []*pulseaudio.Object{}
+	}
 	mics := make([]*pulseaudio.Object, len(sources))
 	i := 0
 	// map object paths to source-objects
@@ -86,8 +85,16 @@ func unmute(devices2unmute []*pulseaudio.Object) {
 }
 
 func main() {
+	// establish a connection to pulseaudio
+	var err error
+	pulse, err = pulseaudio.New()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	flag.Parse()
+
+	initialMicState = getUnmutedMics()
 
 	// restore unmuted mic state on SIGTERM
 	c := make(chan os.Signal, 1)
