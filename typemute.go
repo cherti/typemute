@@ -14,7 +14,7 @@ import (
 	"github.com/sqp/pulseaudio"
 )
 
-var timeoutSeconds = flag.Float64("t", 1.0, "mute timeout after last keypress in seconds")
+var timeout = flag.Duration("t", 500*time.Millisecond, "mute timeout after last keypress")
 var verbose = flag.Bool("v", false, "give more detailed output")
 var pulse *pulseaudio.Client
 var initialMicState []*pulseaudio.Object
@@ -70,7 +70,7 @@ func mute(keypressDump <-chan bool) []*pulseaudio.Object {
 	for {
 		select {
 		case <-keypressDump:
-		case <-time.After(time.Duration(*timeoutSeconds) * time.Second):
+		case <-time.After(*timeout):
 			return devices2mute
 		}
 	}
