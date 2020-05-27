@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -109,6 +110,12 @@ func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan<- bool) {
 
 func main() {
 	flag.Parse()
+
+	logger := log.New(ioutil.Discard, "  ", 0)
+	if *verbose {
+		logger.SetOutput(os.Stdout)
+	}
+
 	micCtrl := newMicCtrl()
 
 	// restore unmuted mic state on SIGTERM
@@ -139,15 +146,11 @@ func main() {
 	for {
 		<-keypressDump
 
-		if *verbose {
-			fmt.Println("muting")
-		}
+		logger.Println("muting")
 
 		mics := micCtrl.mute(keypressDump)
 
-		if *verbose {
-			fmt.Println("unmuting")
-		}
+		logger.Println("unmuting")
 
 		micCtrl.unmute(mics)
 	}
