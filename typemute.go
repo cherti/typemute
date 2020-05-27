@@ -16,33 +16,39 @@ import (
 
 var timeout = flag.Duration("t", 500*time.Millisecond, "mute timeout after last keypress")
 var verbose = flag.Bool("v", false, "give more detailed output")
-var pulse *pulseaudio.Client
-var initialMicState []*pulseaudio.Object
 
-func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan<- bool) {
-	fmt.Println("Monitoring keyboard. Press Ctrl+C to exit.")
-	for scanner.Scan() {
-		slc := strings.Split(scanner.Text(), " ")
-		if slc[len(slc)-1] == "pressed" {
-			keypressDump <- true
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
-	}
+type microphoneController struct {
+	pulse           *pulseaudio.Client
+	initialMicState []*pulseaudio.Object
 }
 
-func getUnmutedMics() []*pulseaudio.Object {
+func newMicCtrl() microphoneController {
+	// load PA-dbus-module as it is not loaded by default
+	exec.Command("pacmd", "load-module", "module-dbus-protocol").Run()
+
+	// establish a connection to pulseaudio
+	var err error
+	pulse, err := pulseaudio.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	mc := microphoneController{pulse, nil}
+	mc.initialMicState = mc.getUnmutedMics()
+	return mc
+}
+
+func (micCtrl microphoneController) getUnmutedMics() []*pulseaudio.Object {
 	// obtain all microphones
-	sources, err := pulse.Core().ListPath("Sources")
+	sources, err := micCtrl.pulse.Core().ListPath("Sources")
 	if err != nil {
 		return []*pulseaudio.Object{}
 	}
+
 	mics := make([]*pulseaudio.Object, len(sources))
 	i := 0
 	// map object paths to source-objects
 	for _, src := range sources {
-		dev := pulse.Device(src)
+		dev := micCtrl.pulse.Device(src)
 		var muted bool
 		dev.Get("Mute", &muted)
 		props, _ := dev.MapString("PropertyList")
@@ -56,8 +62,8 @@ func getUnmutedMics() []*pulseaudio.Object {
 	return mics
 }
 
-func mute(keypressDump <-chan bool) []*pulseaudio.Object {
-	devices2mute := getUnmutedMics()
+func (micCtrl microphoneController) mute(keypressDump <-chan bool) []*pulseaudio.Object {
+	devices2mute := micCtrl.getUnmutedMics()
 
 	// actually mute devices
 	for _, dev := range devices2mute {
@@ -76,7 +82,7 @@ func mute(keypressDump <-chan bool) []*pulseaudio.Object {
 	}
 }
 
-func unmute(devices2unmute []*pulseaudio.Object) {
+func (micCtrl microphoneController) unmute(devices2unmute []*pulseaudio.Object) {
 	for _, dev := range devices2unmute {
 		if dev != nil {
 			dev.Set("Mute", false)
@@ -84,29 +90,37 @@ func unmute(devices2unmute []*pulseaudio.Object) {
 	}
 }
 
-func main() {
-	// establish a connection to pulseaudio
-	var err error
-	pulse, err = pulseaudio.New()
-	if err != nil {
-		log.Fatal(err)
+func (micCtrl microphoneController) restoreInitialState() {
+	micCtrl.unmute(micCtrl.initialMicState)
+}
+
+func monitorKeypresses(scanner *bufio.Scanner, keypressDump chan<- bool) {
+	fmt.Println("Monitoring keyboard. Press Ctrl+C to exit.")
+	for scanner.Scan() {
+		slc := strings.Split(scanner.Text(), " ")
+		if slc[len(slc)-1] == "pressed" {
+			keypressDump <- true
+		}
 	}
+	if err := scanner.Err(); err != nil {
+		fmt.Println(err)
+	}
+}
 
+func main() {
 	flag.Parse()
-
-	initialMicState = getUnmutedMics()
+	micCtrl := newMicCtrl()
 
 	// restore unmuted mic state on SIGTERM
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		for range c {
-			unmute(initialMicState)
+			micCtrl.restoreInitialState()
 			os.Exit(0)
 		}
 	}()
 
-	exec.Command("pacmd", "load-module", "module-dbus-protocol").Run()
 	cmd := exec.Command("sudo", "unbuffer", "libinput", "debug-events")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
@@ -124,13 +138,17 @@ func main() {
 
 	for {
 		<-keypressDump
+
 		if *verbose {
 			fmt.Println("muting")
 		}
-		mics := mute(keypressDump)
+
+		mics := micCtrl.mute(keypressDump)
+
 		if *verbose {
 			fmt.Println("unmuting")
 		}
-		unmute(mics)
+
+		micCtrl.unmute(mics)
 	}
 }
