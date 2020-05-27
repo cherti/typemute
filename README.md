@@ -7,7 +7,7 @@ It currently only supports [PulseAudio](https://www.freedesktop.org/wiki/Softwar
 
 ## Usage
 
-Just call `typemute` (or `./typemute` if only locally installed).
+Just call `typemute` (or `./typemute` if only locally installed) in your terminal.
 
 It will ask you for your sudo-password (see FAQ) for obtaining keypresses and will start working.
 
