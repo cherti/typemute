@@ -106,10 +106,8 @@ func main() {
 		}
 	}()
 
-	cmd := exec.Command("pactl", "load-module", "module-dbus-protocol")
-	cmd.Start()
-	cmd.Wait()
-	cmd = exec.Command("sudo", "unbuffer", "libinput", "debug-events")
+	exec.Command("pacmd", "load-module", "module-dbus-protocol").Run()
+	cmd := exec.Command("sudo", "unbuffer", "libinput", "debug-events")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		fmt.Println(err)

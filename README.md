@@ -26,7 +26,7 @@ Install the packages `libinput-tools`, `expect` (for `unbuffer`) and `sudo`, the
 
 Install external dependencies:
 
-  * `pactl`
+  * `pacmd`
   * `libinput` (the tool, not just the library)
   * `unbuffer` (likely from the `expect` package)
   * `sudo`
